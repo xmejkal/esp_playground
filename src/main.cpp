@@ -3,6 +3,12 @@
 #include <dfRobot_ADS1115.h>
 #include <U8g2lib.h>
 #include <SPI.h>
+#include <FS.h>
+#include <SPIFFS.h>
+
+const int SOIL_MOISTURE_MEASURED_VOLTAGE_PURE_WATER = 1240;
+const int SOIL_MOISTURE_MEASURED_VOLTAGE_FRESHLY_WATERED = 1400;
+const int SOIL_MOISTURE_MEASURED_VOLTAGE_DRY = 2600;
 
 DFRobot_ADS1115 ads(&Wire);
 U8G2_ST7565_ERC12864_ALT_1_4W_SW_SPI u8g2(U8G2_R0, /* clock=*/SCK, /* data=*/MOSI, /* cs=*/D6, /* dc=*/D2, /* reset=*/D3); // contrast improved version for ERC12864
@@ -439,31 +445,6 @@ void draw(void)
   }
 }
 
-void setup()
-{
-  // I2C ADS1115 setup
-  Serial.begin(115200);
-  while (!Serial)
-    ;
-  Serial.print("\nBEGINNING\n");
-  ads.setAddr_ADS1115(ADS1115_IIC_ADDRESS1); // 0x48
-  ads.setGain(eGAIN_TWOTHIRDS);              // 2/3x gain
-  ads.setMode(eMODE_SINGLE);                 // single-shot mode
-  ads.setRate(eRATE_128);                    // 128SPS (default)
-  ads.setOSMode(eOSMODE_SINGLE);             // Set to start a single-conversion
-  ads.init();
-
-  // SPI LCD display setup
-  pinMode(D6, OUTPUT);
-  pinMode(D2, OUTPUT);
-  digitalWrite(D6, 0);
-  digitalWrite(D2, 0);
-
-  u8g2.begin();
-  // u8g2.setFlipMode(0);
-  u8g2.setContrast(80);
-}
-
 int getVoltage()
 {
   int16_t adc0;
@@ -488,6 +469,52 @@ void displayVoltage(int voltage)
     u8g2.drawStr(0, 20, String(voltage).c_str());
     u8g2.drawStr(28, 20, "mV");
   } while (u8g2.nextPage());
+}
+
+void listSPIFFS()
+{
+  Serial.println("Listing SPIFFS files:");
+  File root = SPIFFS.open("/");
+  File file = root.openNextFile();
+  while (file)
+  {
+    Serial.print("  FILE: ");
+    Serial.println(file.name());
+    file = root.openNextFile();
+  }
+}
+
+// --------------------------------------------------------------------------------------------------------------
+void setup()
+{
+  // I2C ADS1115 setup
+  Serial.begin(115200);
+  while (!Serial)
+    ;
+  ads.setAddr_ADS1115(ADS1115_IIC_ADDRESS1); // 0x48
+  ads.setGain(eGAIN_TWOTHIRDS);              // 2/3x gain
+  ads.setMode(eMODE_SINGLE);                 // single-shot mode
+  ads.setRate(eRATE_128);                    // 128SPS (default)
+  ads.setOSMode(eOSMODE_SINGLE);             // Set to start a single-conversion
+  ads.init();
+
+  // SPI LCD display setup
+  pinMode(D6, OUTPUT);
+  pinMode(D2, OUTPUT);
+  digitalWrite(D6, 0);
+  digitalWrite(D2, 0);
+
+  u8g2.begin();
+  // u8g2.setFlipMode(0);
+  u8g2.setContrast(80);
+
+  // SPIFFS setup
+  if (!SPIFFS.begin())
+  {
+    Serial.println("An Error has occurred while mounting SPIFFS");
+    return;
+  }
+  listSPIFFS();
 }
 
 void loop()
