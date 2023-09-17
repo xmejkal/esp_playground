@@ -461,6 +461,8 @@ int getVoltage()
 
 void displayVoltage(int voltage)
 {
+
+  int moisture_percentage = map(voltage, SOIL_MOISTURE_MEASURED_VOLTAGE_DRY, SOIL_MOISTURE_MEASURED_VOLTAGE_FRESHLY_WATERED, 0, 100);
   u8g2.firstPage();
   do
   {
@@ -468,6 +470,9 @@ void displayVoltage(int voltage)
     u8g2.drawStr(0, 10, "Voltage: ");
     u8g2.drawStr(0, 20, String(voltage).c_str());
     u8g2.drawStr(28, 20, "mV");
+    u8g2.drawStr(70, 10, "Moisture: ");
+    u8g2.drawStr(70, 20, String(moisture_percentage).c_str());
+    u8g2.drawStr(85, 20, "%");
   } while (u8g2.nextPage());
 }
 
